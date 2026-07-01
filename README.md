@@ -82,3 +82,31 @@ location-picker/                 # 进阶（可选）：网页地图选点工具
 ## 友情链接
 
 本项目接受 LINUX DO 社区佬友监督与反馈：[LINUX DO](https://linux.do)
+
+## location-picker 服务端配置
+
+`location-picker/server.js` 通过环境变量控制，**`TOKEN` 不设进程会直接退出，不会用弱口令兜底**。
+
+| 变量 | 是否必设 | 默认值 | 说明 |
+|------|---------|--------|------|
+| `TOKEN` | **必设** | 无 | 访问口令和 Shadowrocket 模块 `argument=` 末尾的 `configUrl` 里的 `token=` 必须一致。建议 `openssl rand -hex 24` 生成 |
+| `PORT` | 否 | `8080` | 监听端口；1024 以下需 root |
+| `CERT` | 否 | 空 | HTTPS 证书 fullchain 路径；与 `KEY` 同时设置才走 https |
+| `KEY` | 否 | 空 | HTTPS 私钥路径；与 `CERT` 同时设置才走 https |
+
+启动示例：
+
+```bash
+# http（最简，先跑通流程再用 https）
+TOKEN=$(openssl rand -hex 24) PORT=8080 node server.js
+
+# https（复用 acme.sh 证书；续期无需重启，进程每 12 小时自动热加载）
+TOKEN=$(openssl rand -hex 24) PORT=8443 \
+CERT=/root/cert/example.com/fullchain.pem \
+KEY=/root/cert/example.com/privkey.pem \
+node server.js
+```
+
+数据文件 `loc.json` 自动落在 `server.js` 同目录，记录当前坐标 / 海拔 / 精度；已在 `.gitignore` 中忽略，不会被误提交进仓库。
+
+> ⚠️ **不要把 `TOKEN` 写在命令行历史里**——推荐用 systemd 的 `Environment=` 或 `.env` + `direnv`，避免 `history` / `ps aux` 泄露。
